@@ -1,0 +1,120 @@
+# Path Loss Model Configuration File
+# All settings for reproducibility and easy modification
+
+# Data Configuration
+data:
+  frequency_mhz: 1800
+  base_station_height_m: 30
+  mobile_station_height_m: 1.5
+  datasets:
+    - Yaba_updated_with_heights_and_freq.xlsx
+    - Sango Ota.xlsx
+    - Ijebu_ode_updated_with_heights_and_freq.xlsx
+
+# Empirical Models Configuration
+models:
+  cost231_urban:
+    enabled: true
+    description: "COST-231 Hata Urban baseline"
+  
+  cost231_suburban:
+    enabled: true
+    description: "COST-231 Hata with suburban correction"
+    correction_db: -5.0
+  
+  okumura_hata_suburban:
+    enabled: true
+    description: "Okumura-Hata Suburban model"
+  
+  egli:
+    enabled: true
+    description: "Egli model for point-to-point communication"
+
+# PSO Optimization Configuration
+pso:
+  enabled: true
+  n_particles: 50
+  n_dimensions: 9
+  n_iterations: 1000
+  cognitive_parameter: 0.5
+  social_parameter: 0.3
+  inertia_weight: 0.9
+  bounds:
+    lower: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    upper: [100, 100, 100, 100, 100, 100, 100, 100, 100]
+
+# Genetic Algorithm Configuration
+ga:
+  enabled: true
+  population_size: 100
+  n_generations: 1000
+  crossover_probability: 0.9
+  mutation_probability: 0.5
+  crossover_alpha: 0.5
+  mutation_sigma: 5.0
+  mutation_indpb: 0.2
+  tournament_size: 3
+  bounds:
+    lower: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    upper: [100, 100, 100, 100, 100, 100, 100, 100, 100]
+
+# Neural Network Configuration
+ann:
+  enabled: true
+  architecture:
+    input_features: 4  # f_mhz, h_b_m, h_m_m, d_km
+    layers: [64, 32]
+    output_layer: 1
+  activation: relu
+  output_activation: linear
+  loss: mean_squared_error
+  optimizer: adam
+  learning_rate: 0.001
+  epochs: 200
+  batch_size: 32
+  validation_split: 0.2
+  early_stopping:
+    enabled: true
+    patience: 20
+
+# Cross-Validation Configuration
+cross_validation:
+  enabled: true
+  n_folds: 5
+  random_state: 42
+
+# Evaluation Metrics
+metrics:
+  - RMSE
+  - MAE
+  - MAPE
+  - R2
+  - Mean_Residual
+  - Std_Residual
+
+# Sensitivity Analysis
+sensitivity_analysis:
+  enabled: true
+  perturbation_percentage: 10.0
+
+# Statistical Testing
+statistical_testing:
+  enabled: true
+  significance_level: 0.05
+
+# Distance Stratification
+distance_stratification:
+  enabled: true
+  n_bins: 5
+
+# Output Configuration
+output:
+  save_plots: true
+  plot_format: png
+  dpi: 300
+  save_results_csv: true
+  results_directory: ./results
+
+# Reproducibility
+random_state: 42
+verbose: true

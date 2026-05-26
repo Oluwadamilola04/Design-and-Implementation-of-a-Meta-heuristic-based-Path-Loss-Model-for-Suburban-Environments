@@ -1,156 +1,126 @@
-# Optimization of Radio Propagation Path Loss Models for Suburban Areas
+# Path Loss Model Optimization System
 
-## 📌 Project Overview
+Radio propagation prediction for suburban environments using empirical models, metaheuristic optimization, and a Streamlit UI.
 
-This project focuses on enhancing the predictive accuracy of radio propagation models in suburban environments. By analyzing drive test data from **Yaba, Sango Ota, and Ijebu Ode, Nigeria** at **1800 MHz**, this study optimizes the **COST-231 Hata model** using metaheuristic techniques.
+## Current Status
 
-The goal is to provide telecommunication engineers with high-precision tools for network planning, reducing the gap between theoretical predictions and real-world signal attenuation.
+This project now runs successfully in the `pathloss` Conda environment using Python 3.11 and TensorFlow 2.15.1. The full analysis runner was executed on May 26, 2026 using all three available field datasets:
 
----
+- `Yaba_updated_with_heights_and_freq.xlsx`
+- `Sango Ota.xlsx`
+- `Ijebu_ode_updated_with_heights_and_freq.xlsx`
 
-## 🌍 Study Locations
+The combined run used 3,616 measurement samples.
 
-* 
-**Locations:** Yaba, Sango Ota, and Ijebu Ode (Lagos and Ogun State, Nigeria).
+## Environment Setup
 
+Use a dedicated Conda environment instead of Anaconda `base`. This avoids mixing packages from `C:\Users\HP\AppData\Roaming\Python\Python312\site-packages`.
 
-* 
-**Frequency:** 1800 MHz.
+```powershell
+conda create -n pathloss python=3.11 -y
+conda activate pathloss
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+python -m ipykernel install --user --name pathloss --display-name "Path Loss Python 3.11"
+```
 
+In VS Code, select the notebook kernel named `Path Loss Python 3.11`.
 
-* 
-**Dataset:** Real-world drive test campaign measurements including distance, elevation, and path loss.
+## Run The Analysis
 
+Full configured run:
 
+```powershell
+conda activate pathloss
+python run_analysis.py
+```
 
----
+Quick smoke run:
 
-## 🎯 Research Objectives
+```powershell
+conda activate pathloss
+python run_analysis.py --fast
+```
 
-The project workflow was designed to solve the following:
+The runner writes outputs to `results/`:
 
-1. Implement baseline empirical models (**Okumura-Hata, Egli, COST-231**).
+- `model_comparison_results.csv`
+- `path_loss_predictions.csv`
+- `optimized_parameters.csv`
+- `optimization_history.csv`
 
+## Streamlit App
 
-2. Evaluate the accuracy of these models against field measurements using **RMSE** and **MAE**.
+Start the web UI with:
 
+```powershell
+conda activate pathloss
+streamlit run app.py
+```
 
-3. Optimize the COST-231 Hata model parameters using **Particle Swarm Optimization (PSO)**.
+Then open:
 
+```text
+http://localhost:8501
+```
 
-4. Optimize the same model using a **Genetic Algorithm (GA)** for 1000 generations.
+The app supports:
 
+- Single point path-loss prediction
+- Batch prediction across a distance range
+- Uploaded Excel measurement comparison
+- CSV export of prediction results
 
-5. Benchmark the optimized results against traditional models to determine the most effective approach.
+Expected upload columns:
 
+```text
+Frequency_MHz
+Base_Station_Height_m
+Mobile_Station_Height_m
+Distance (m)
+Path Loss (dB)
+```
 
+## Latest Full-Run Results
 
----
+Results from the combined three-dataset run:
 
-## 🛠️ Technical Workflow & Implementation
+| Model | RMSE | MAE | R2 |
+|---|---:|---:|---:|
+| PSO-Optimized | 7.8345 | 5.8198 | 0.2632 |
+| GA-Optimized | 7.8610 | 5.8138 | 0.2582 |
+| Egli Model | 19.1030 | 15.0013 | -3.3804 |
+| COST-231 Urban | 26.7700 | 24.1296 | -7.6022 |
+| COST-231 Suburban | 31.3225 | 28.9849 | -10.7768 |
+| Okumura-Hata Suburban | 39.6785 | 37.8328 | -17.8984 |
 
-### 1. Data Preparation & Environment Setup
+## Observations
 
-* 
-**Library Installation:** Implementation relies on `pyswarms` for optimization and `scikit-learn` for metrics.
-
-
-* 
-**Data Loading:** Measurements are pulled from Excel files (e.g., `Yaba_updated_with_heights_and_freq.xlsx`).
-
-
-* 
-**Feature Engineering:** Essential parameters like Base Station Height (30m) and Mobile Height (1.5m) are integrated into the calculation dataframe.
-
-
-
-### 2. Baseline Modeling
-
-* Standard COST-231 Hata Urban/Suburban path loss predictions are generated as a reference point.
-
-
-
-### 3. Metaheuristic Optimization (The Core)
-
-The project utilizes two advanced optimization strategies to minimize the error (RMSE) between predicted and actual data:
-
-* **Particle Swarm Optimization (PSO):**
-* Utilizes the `pyswarms` library to search for global best coefficients for the path loss equation.
-
-
-* Achieved the lowest error rates across the study areas.
-
-
-
-
-* **Genetic Algorithm (GA):**
-* Processed over **1000 generations** to evolve the model parameters.
-
-
-* Successfully converged with a best RMSE of approximately **6.445**.
-
-
-
-
-
----
-
-## 📊 Results & Performance Insights
-
-### Key KPIs (Results Summary)
-
-* 
-**Best GA RMSE:** ~6.445 
-
-
-* 
-**Top Performer:** Particle Swarm Optimization (PSO) 
-
-
-* 
-**Optimization Generations:** 1000 (for Genetic Algorithm) 
-
-
-
-### 🧠 Key Insights
-
-* 
-**Significant Error Reduction:** Both metaheuristic techniques drastically reduced prediction errors compared to standard models like Egli and Okumura-Hata.
-
-
-* 
-**Environment Adaptation:** The optimized models proved to be more reliable for the specific suburban terrains of Nigeria.
-
-
-* 
-**PSO vs. GA:** While both were effective, PSO performed slightly better in minimizing signal attenuation prediction errors.
-
-
-
----
-
-## 🛠️ Tools & Technologies Used
-
-* **Python:** Primary programming language.
-* 
-**Pandas & NumPy:** Data manipulation and numerical analysis.
-
-
-* 
-**Pyswarms:** Metaheuristic optimization for PSO.
-
-
-* 
-**Scikit-Learn:** Statistical evaluation (RMSE/MAE).
-
-
-* 
-**Openpyxl:** Handling complex Excel datasets.
-
-
-
----
-
-## 🚀 Conclusion
-
-This project demonstrates a complete technical workflow for wireless network optimization. By transitioning from standard empirical models to metaheuristic-optimized models, the study provides a robust framework for deploying more dependable communication systems in suburban environments.
+- The optimized COST-231 variants are far better than the unoptimized empirical models on the combined dataset.
+- PSO produced the best RMSE in the latest full run: 7.8345 dB.
+- GA was close to PSO, with slightly lower MAE but slightly higher RMSE.
+- The baseline empirical models show negative R2 on the combined data, meaning they perform worse than predicting the global mean path loss for this combined field dataset.
+- PSO convergence flattened after roughly 650-800 iterations, so 1000 iterations is reasonable for final reporting but more than needed for quick checks.
+- The previous `requirements.txt` pinned TensorFlow 2.13, which is not suitable for the Python 3.12 setup that caused the DLL/runtime issue. The project is now documented around Python 3.11 and TensorFlow 2.15.1.
+
+## Recommendations
+
+- Use `Path Loss Python 3.11` for the notebook and the `pathloss` Conda environment for terminal runs.
+- Keep `base` Anaconda clean; install project packages into `pathloss`.
+- Treat `run_analysis.py --fast` as a smoke test before running the full optimization.
+- Report full-run results from `results/model_comparison_results.csv`, not from a quick smoke run.
+- Consider train/test or site-held-out validation before making final research claims. The current run optimizes and evaluates on the same combined dataset.
+- Investigate site-specific performance for Yaba, Sango Ota, and Ijebu Ode separately; the combined R2 suggests each location may need separate calibration or extra features.
+- Add terrain/elevation-derived features if the ANN or optimized formula is expected to generalize beyond these three routes.
+- Keep the Streamlit app focused on empirical comparison unless optimized parameters from `results/optimized_parameters.csv` are explicitly loaded into the UI.
+
+## Project Files
+
+- `Path_Loss_Enhanced.ipynb` - notebook workflow
+- `run_analysis.py` - command-line workflow
+- `app.py` - Streamlit interface
+- `models.py` - empirical and wrapper model implementations
+- `optimization.py` - PSO and GA optimizers
+- `analysis.py` - metrics and diagnostics
+- `config.yaml` - datasets and run configuration
+- `requirements.txt` - working environment dependencies

@@ -1,0 +1,24 @@
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments and local environment files
+.venv/
+venv/
+env/
+.env
+
+# Jupyter local state
+.ipynb_checkpoints/
+
+# Streamlit and local logs
+*.log
+streamlit*.log
+
+# Root-level notebook/script exports; canonical outputs live in results/
+/all_predictions.csv
+/model_comparison_results.csv
+
+# Local screenshots
+Screenshot*.png
