@@ -1,10 +1,10 @@
 # Path Loss Model Optimization System
 
-Radio propagation prediction for suburban environments using empirical models, metaheuristic optimization, and a Streamlit UI.
+Radio propagation prediction for suburban environments using empirical models, metaheuristic optimization, an Artificial Neural Network (ANN), and a Streamlit UI.
 
 ## Current Status
 
-This project now runs successfully in the `pathloss` Conda environment using Python 3.11 and TensorFlow 2.15.1. The full analysis runner was executed on May 26, 2026 using all three available field datasets:
+This project runs successfully in the `pathloss` Conda environment using Python 3.11 and TensorFlow 2.15.1. The analysis runner was executed on May 26, 2026 using all three available field datasets:
 
 - `Yaba_updated_with_heights_and_freq.xlsx`
 - `Sango Ota.xlsx`
@@ -48,6 +48,11 @@ The runner writes outputs to `results/`:
 - `path_loss_predictions.csv`
 - `optimized_parameters.csv`
 - `optimization_history.csv`
+- `ann_model.keras`
+- `ann_scaler.pkl`
+- `ann_metadata.csv`
+
+`ann_model.keras` and `ann_scaler.pkl` are loaded by the Streamlit app so the ANN can be used for single-point and batch predictions without retraining every time.
 
 ## Streamlit App
 
@@ -66,10 +71,18 @@ http://localhost:8501
 
 The app supports:
 
-- Single point path-loss prediction
-- Batch prediction across a distance range
+- Single point path-loss prediction with empirical, optimized, and saved ANN models
+- Batch prediction across a distance range with empirical, optimized, and saved ANN models
 - Uploaded Excel measurement comparison
 - CSV export of prediction results
+
+The app loads these model groups:
+
+- Empirical baselines: COST-231 Urban, COST-231 Suburban, Okumura-Hata Suburban, Egli
+- Optimized models: PSO-Optimized and GA-Optimized from `results/optimized_parameters.csv`
+- ANN: saved Keras model from `results/ann_model.keras` with scaler from `results/ann_scaler.pkl`
+
+In Model Comparison mode, the app can also train a fresh ANN on the uploaded file when `Train ANN on uploaded data` is checked.
 
 Expected upload columns:
 
@@ -87,18 +100,30 @@ Results from the combined three-dataset run:
 
 | Model | RMSE | MAE | R2 |
 |---|---:|---:|---:|
-| PSO-Optimized | 7.8345 | 5.8198 | 0.2632 |
-| GA-Optimized | 7.8610 | 5.8138 | 0.2582 |
+| ANN | 7.3958 | 5.4898 | 0.3434 |
+| PSO-Optimized | 8.1681 | 6.0866 | 0.1991 |
+| GA-Optimized | 8.5027 | 6.4160 | 0.1322 |
 | Egli Model | 19.1030 | 15.0013 | -3.3804 |
 | COST-231 Urban | 26.7700 | 24.1296 | -7.6022 |
 | COST-231 Suburban | 31.3225 | 28.9849 | -10.7768 |
 | Okumura-Hata Suburban | 39.6785 | 37.8328 | -17.8984 |
 
+Saved ANN metadata:
+
+| Metric | Value |
+|---|---:|
+| Train samples | 2,892 |
+| Held-out test samples | 724 |
+| Full-data RMSE | 7.3958 |
+| Held-out RMSE | 7.5703 |
+| Held-out MAE | 5.6847 |
+| Held-out R2 | 0.3613 |
+
 ## Observations
 
-- The optimized COST-231 variants are far better than the unoptimized empirical models on the combined dataset.
-- PSO produced the best RMSE in the latest full run: 7.8345 dB.
-- GA was close to PSO, with slightly lower MAE but slightly higher RMSE.
+- The saved ANN is currently the top-performing model on the combined dataset, with RMSE of 7.3958 dB.
+- The optimized COST-231 variants are still far better than the unoptimized empirical models on the combined dataset.
+- PSO and GA remain useful interpretable optimized-formula baselines, while ANN provides the strongest data-driven benchmark.
 - The baseline empirical models show negative R2 on the combined data, meaning they perform worse than predicting the global mean path loss for this combined field dataset.
 - PSO convergence flattened after roughly 650-800 iterations, so 1000 iterations is reasonable for final reporting but more than needed for quick checks.
 - The previous `requirements.txt` pinned TensorFlow 2.13, which is not suitable for the Python 3.12 setup that caused the DLL/runtime issue. The project is now documented around Python 3.11 and TensorFlow 2.15.1.
@@ -109,10 +134,11 @@ Results from the combined three-dataset run:
 - Keep `base` Anaconda clean; install project packages into `pathloss`.
 - Treat `run_analysis.py --fast` as a smoke test before running the full optimization.
 - Report full-run results from `results/model_comparison_results.csv`, not from a quick smoke run.
-- Consider train/test or site-held-out validation before making final research claims. The current run optimizes and evaluates on the same combined dataset.
+- Use the saved ANN in Streamlit for quick single-point and batch prediction, but report its held-out metrics from `results/ann_metadata.csv`.
+- Consider site-held-out validation before making final research claims. The current ANN uses a random train/test split across the combined dataset.
 - Investigate site-specific performance for Yaba, Sango Ota, and Ijebu Ode separately; the combined R2 suggests each location may need separate calibration or extra features.
 - Add terrain/elevation-derived features if the ANN or optimized formula is expected to generalize beyond these three routes.
-- Keep the Streamlit app focused on empirical comparison unless optimized parameters from `results/optimized_parameters.csv` are explicitly loaded into the UI.
+- Retrain and resave the ANN artifacts after adding new measurement data so the UI predictions stay aligned with the latest dataset.
 
 ## Project Files
 
@@ -124,3 +150,5 @@ Results from the combined three-dataset run:
 - `analysis.py` - metrics and diagnostics
 - `config.yaml` - datasets and run configuration
 - `requirements.txt` - working environment dependencies
+- `results/ann_model.keras` - saved ANN model used by Streamlit
+- `results/ann_scaler.pkl` - saved feature scaler used by Streamlit
