@@ -20,5 +20,9 @@ streamlit*.log
 /all_predictions.csv
 /model_comparison_results.csv
 
+# Duplicate/local-only files
+Path_Loss_Important2*.ipynb
+requirements\ \(2\).txt
+
 # Local screenshots
 Screenshot*.png
