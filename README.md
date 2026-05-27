@@ -94,6 +94,47 @@ Distance (m)
 Path Loss (dB)
 ```
 
+## Application Interface
+
+The Streamlit app features three main modes of operation:
+
+### 1. Single Point Prediction
+
+![Single Point Prediction](image%20copy%202.png)
+
+Allows real-time prediction of path loss at a specific location. Users configure:
+- **Input Parameters**: Frequency (MHz), Base Station Height (m), Mobile Station Height (m), Distance (km)
+- **Selected Models**: Multi-select from available models (COST-231 Urban/Suburban, Okumura-Hata, Egli, PSO-Optimized, GA-Optimized, and/or ANN if available)
+- **Results Display**: A table showing path loss predictions (dB) for each selected model, plus summary statistics (Average, Min, Max, Std Dev)
+
+### 2. Batch Analysis
+
+![Batch Analysis](image%20copy.png)
+
+Generates predictions across a distance range with a fixed configuration. Users specify:
+- **Configuration**: Frequency, Base Station Height, Mobile Height (common for all predictions)
+- **Distance Range**: Minimum distance (km), maximum distance (km), and number of points to generate
+- **Model Selection**: Choose which models to include in the analysis
+- **Outputs**: 
+  - Interactive plot of Path Loss vs Distance for all selected models
+  - Detailed results table with distances and predictions for each model
+  - CSV export button to download results for further analysis
+
+### 3. Model Comparison & Analysis
+
+![Model Comparison & Analysis](image.png)
+
+Enables comparative evaluation of models against uploaded field measurement data. Users can:
+- **Upload Data**: Select an Excel file (XLSX or XLS) containing field measurements
+- **Train ANN**: Optionally train a fresh ANN on the uploaded dataset
+- **Compare Models**: Automatically compute predictions from all available models
+- **View Metrics**: Performance metrics table (RMSE, MAE, R²) sorted by error
+- **Visualizations**:
+  - Path Loss Comparison plot (predicted vs measured)
+  - Error Distribution box plot showing model prediction errors
+  - Residuals analysis with per-model error statistics
+  - Download capabilities for detailed results
+
 ## Latest Full-Run Results
 
 Results from the combined three-dataset run:
