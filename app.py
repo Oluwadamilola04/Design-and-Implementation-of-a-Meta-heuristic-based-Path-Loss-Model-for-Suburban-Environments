@@ -4,6 +4,7 @@ Streamlit application for radio path-loss prediction and model comparison.
 
 import os
 import sys
+from io import StringIO
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,6 +12,7 @@ import pandas as pd
 import streamlit as st
 import tensorflow as tf
 import joblib
+import yaml
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -92,6 +94,37 @@ def load_models():
 models = load_models()
 
 
+@st.cache_data
+def load_training_domain():
+    """Load feature ranges used by the saved ANN artifacts."""
+    config_path = os.path.join(project_dir, "config.yaml")
+    if not os.path.exists(config_path):
+        return None
+
+    with open(config_path, "r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+
+    frames = []
+    for dataset_name in config.get("data", {}).get("datasets", []):
+        dataset_path = os.path.join(project_dir, dataset_name)
+        if os.path.exists(dataset_path):
+            frames.append(pd.read_excel(dataset_path, usecols=REQUIRED_COLUMNS))
+
+    if not frames:
+        return None
+
+    df = pd.concat(frames, ignore_index=True)
+    return {
+        "frequency": (df["Frequency_MHz"].min(), df["Frequency_MHz"].max()),
+        "base_height": (df["Base_Station_Height_m"].min(), df["Base_Station_Height_m"].max()),
+        "mobile_height": (df["Mobile_Station_Height_m"].min(), df["Mobile_Station_Height_m"].max()),
+        "distance_km": (df["Distance (m)"].min() / 1000.0, df["Distance (m)"].max() / 1000.0),
+    }
+
+
+ann_domain = load_training_domain()
+
+
 def calculate_metrics(y_true, y_pred):
     return {
         "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
@@ -103,7 +136,7 @@ def calculate_metrics(y_true, y_pred):
 @st.cache_resource(show_spinner=False)
 def train_ann_model(dataframe_json):
     """Train an ANN on uploaded measurement data."""
-    df = pd.read_json(dataframe_json)
+    df = pd.read_json(StringIO(dataframe_json))
     features = np.column_stack(
         [
             df["Frequency_MHz"].to_numpy(dtype=float),
@@ -167,6 +200,41 @@ def predict_with_model(model, frequency, bs_height, mobile_height, distance_km):
     )
 
 
+def ann_in_domain(frequency, bs_height, mobile_height, distance_km):
+    """Return a boolean mask indicating which points are inside the ANN training range."""
+    if ann_domain is None:
+        return np.ones_like(np.asarray(distance_km, dtype=float), dtype=bool)
+
+    frequency = np.asarray(frequency, dtype=float)
+    bs_height = np.asarray(bs_height, dtype=float)
+    mobile_height = np.asarray(mobile_height, dtype=float)
+    distance_km = np.asarray(distance_km, dtype=float)
+
+    return (
+        (frequency >= ann_domain["frequency"][0])
+        & (frequency <= ann_domain["frequency"][1])
+        & (bs_height >= ann_domain["base_height"][0])
+        & (bs_height <= ann_domain["base_height"][1])
+        & (mobile_height >= ann_domain["mobile_height"][0])
+        & (mobile_height <= ann_domain["mobile_height"][1])
+        & (distance_km >= ann_domain["distance_km"][0])
+        & (distance_km <= ann_domain["distance_km"][1])
+    )
+
+
+def ann_domain_message():
+    if ann_domain is None:
+        return "ANN training range is unavailable."
+
+    return (
+        "Saved ANN training range: "
+        f"frequency {ann_domain['frequency'][0]:.0f}-{ann_domain['frequency'][1]:.0f} MHz, "
+        f"base height {ann_domain['base_height'][0]:.1f}-{ann_domain['base_height'][1]:.1f} m, "
+        f"mobile height {ann_domain['mobile_height'][0]:.1f}-{ann_domain['mobile_height'][1]:.1f} m, "
+        f"distance {ann_domain['distance_km'][0]:.3f}-{ann_domain['distance_km'][1]:.3f} km."
+    )
+
+
 def plot_prediction_comparison(distances, predictions_dict, title="Path Loss vs Distance"):
     fig, ax = plt.subplots(figsize=(12, 6))
 
@@ -222,30 +290,35 @@ if app_mode == "Single Prediction":
 
         if selected_models:
             predictions = {}
+            display_rows = []
             for model_name in selected_models:
-                predictions[model_name] = predict_with_model(
-                    models[model_name],
-                    [frequency],
-                    [bs_height],
-                    [mobile_height],
-                    [distance],
-                )[0]
+                if model_name == "ANN" and not ann_in_domain([frequency], [bs_height], [mobile_height], [distance])[0]:
+                    display_rows.append(
+                        {
+                            "Model": model_name,
+                            "Path Loss (dB)": "Outside ANN training range",
+                        }
+                    )
+                    st.warning(ann_domain_message())
+                    continue
 
-            results_df = pd.DataFrame(
-                {
-                    "Model": list(predictions.keys()),
-                    "Path Loss (dB)": [f"{value:.2f}" for value in predictions.values()],
-                }
-            )
+                prediction = predict_with_model(
+                    models[model_name], [frequency], [bs_height], [mobile_height], [distance]
+                )[0]
+                predictions[model_name] = prediction
+                display_rows.append({"Model": model_name, "Path Loss (dB)": f"{prediction:.2f}"})
+
+            results_df = pd.DataFrame(display_rows)
             st.dataframe(results_df, width="stretch")
 
             pred_values = list(predictions.values())
-            st.metric("Average Path Loss", f"{np.mean(pred_values):.2f} dB")
+            if pred_values:
+                st.metric("Average Path Loss", f"{np.mean(pred_values):.2f} dB")
 
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Min", f"{np.min(pred_values):.2f} dB")
-            c2.metric("Max", f"{np.max(pred_values):.2f} dB")
-            c3.metric("Std Dev", f"{np.std(pred_values):.2f} dB")
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Min", f"{np.min(pred_values):.2f} dB")
+                c2.metric("Max", f"{np.max(pred_values):.2f} dB")
+                c3.metric("Std Dev", f"{np.std(pred_values):.2f} dB")
 
 
 elif app_mode == "Batch Analysis":
@@ -277,13 +350,35 @@ elif app_mode == "Batch Analysis":
             distances = np.linspace(distance_min, distance_max, n_points)
             predictions_dict = {}
             for model_name in selected_models_batch:
-                predictions_dict[model_name] = predict_with_model(
-                    models[model_name],
-                    np.full(n_points, frequency),
-                    np.full(n_points, bs_height),
-                    np.full(n_points, mobile_height),
-                    distances,
-                )
+                frequency_arr = np.full(n_points, frequency)
+                bs_height_arr = np.full(n_points, bs_height)
+                mobile_height_arr = np.full(n_points, mobile_height)
+
+                if model_name == "ANN":
+                    valid_mask = ann_in_domain(frequency_arr, bs_height_arr, mobile_height_arr, distances)
+                    ann_predictions = np.full(n_points, np.nan)
+                    if valid_mask.any():
+                        ann_predictions[valid_mask] = predict_with_model(
+                            models[model_name],
+                            frequency_arr[valid_mask],
+                            bs_height_arr[valid_mask],
+                            mobile_height_arr[valid_mask],
+                            distances[valid_mask],
+                        )
+                    if (~valid_mask).any():
+                        st.warning(
+                            "ANN predictions outside the saved training range are hidden. "
+                            + ann_domain_message()
+                        )
+                    predictions_dict[model_name] = ann_predictions
+                else:
+                    predictions_dict[model_name] = predict_with_model(
+                        models[model_name],
+                        frequency_arr,
+                        bs_height_arr,
+                        mobile_height_arr,
+                        distances,
+                    )
 
             st.pyplot(plot_prediction_comparison(distances, predictions_dict), width="stretch")
 
