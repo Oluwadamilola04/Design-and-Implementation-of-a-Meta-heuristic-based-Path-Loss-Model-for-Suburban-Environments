@@ -16,7 +16,7 @@ import yaml
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from tensorflow import keras
+from tensorflow import keras # type: ignore
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_dir)
@@ -97,7 +97,7 @@ def load_models():
         except Exception as exc:
             load_warnings.append(
                 "Saved ANN artifacts could not be loaded on this deployment. "
-                f"The app will continue without ANN in single/batch prediction. Details: {exc}"
+                f"The app will continue without ANN in single/batch prediction."
             )
 
     return loaded_models, load_warnings
