@@ -12,10 +12,6 @@ env/
 # Jupyter local state
 .ipynb_checkpoints/
 
-# Streamlit and local logs
-*.log
-streamlit*.log
-
 # Root-level notebook/script exports; canonical outputs live in results/
 /all_predictions.csv
 /model_comparison_results.csv
