@@ -24,5 +24,13 @@ streamlit*.log
 Path_Loss_Important2*.ipynb
 requirements\ \(2\).txt
 
-# Local screenshots
+# Local logs and debug artifacts
+*.log
+report.log
+streamlit-ui.log
+
+# Local screenshots and development artifacts
 Screenshot*.png
+
+# Convenience scripts (for local use)
+start_streamlit.ps1
