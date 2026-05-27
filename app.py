@@ -69,29 +69,44 @@ def load_models():
         "Okumura-Hata Suburban": OkumuraHataSuburban(),
         "Egli Model": EgliModel(),
     }
+    load_warnings = []
 
     params_path = os.path.join(project_dir, "results", "optimized_parameters.csv")
     if os.path.exists(params_path):
-        params_df = pd.read_csv(params_path)
-        param_cols = [f"p{i}" for i in range(1, 10)]
-        for _, row in params_df.iterrows():
-            if all(col in row.index for col in param_cols):
-                loaded_models[row["Model"]] = OptimizedCOST231(
-                    row[param_cols].to_numpy(dtype=float)
-                )
+        try:
+            params_df = pd.read_csv(params_path)
+            param_cols = [f"p{i}" for i in range(1, 10)]
+            for _, row in params_df.iterrows():
+                if all(col in row.index for col in param_cols):
+                    loaded_models[row["Model"]] = OptimizedCOST231(
+                        row[param_cols].to_numpy(dtype=float)
+                    )
+        except Exception as exc:
+            load_warnings.append(
+                f"Saved optimized models could not be loaded from results/optimized_parameters.csv: {exc}"
+            )
 
     ann_model_path = os.path.join(project_dir, "results", "ann_model.keras")
     ann_scaler_path = os.path.join(project_dir, "results", "ann_scaler.pkl")
     if os.path.exists(ann_model_path) and os.path.exists(ann_scaler_path):
-        ann_model = keras.models.load_model(ann_model_path)
-        ann_wrapper = ANNModel(ann_model)
-        ann_wrapper.set_scaler(joblib.load(ann_scaler_path))
-        loaded_models["ANN"] = ann_wrapper
+        try:
+            ann_model = keras.models.load_model(ann_model_path)
+            ann_wrapper = ANNModel(ann_model)
+            ann_wrapper.set_scaler(joblib.load(ann_scaler_path))
+            loaded_models["ANN"] = ann_wrapper
+        except Exception as exc:
+            load_warnings.append(
+                "Saved ANN artifacts could not be loaded on this deployment. "
+                f"The app will continue without ANN in single/batch prediction. Details: {exc}"
+            )
 
-    return loaded_models
+    return loaded_models, load_warnings
 
 
-models = load_models()
+models, model_load_warnings = load_models()
+
+for warning_message in model_load_warnings:
+    st.warning(warning_message)
 
 
 @st.cache_data
