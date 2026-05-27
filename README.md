@@ -1,4 +1,4 @@
-# Path Loss Model Optimization System
+# Design and Implementation of a Meta-heuristic based Path Loss Model for Suburban Environments
 
 Radio propagation prediction for suburban environments using empirical models, metaheuristic optimization, an Artificial Neural Network (ANN), and a Streamlit UI which can be viewed here: https://gjlox6cectvaxdkklzfz4s.streamlit.app/.
 
