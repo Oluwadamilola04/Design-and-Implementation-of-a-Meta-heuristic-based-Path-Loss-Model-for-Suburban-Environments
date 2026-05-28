@@ -373,4 +373,3 @@ Typical results on Nigerian suburban data (Yaba):
 streamlit run app.py
 ```
 
-Happy predicting! 🚀
